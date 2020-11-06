@@ -60,7 +60,8 @@ qtest: covdir
 
 docker:
 	@docker image prune -f
-	@docker build --no-cache -t amalto/caddy:$(CADDY_DOCKER_IMAGE_TAG) -f ./Dockerfile .
+	@docker build --no-cache -t amalto/caddy:$(CADDY_DOCKER_IMAGE_TAG) -f ./resources/Dockerfile .
+	@docker push amalto/caddy:$(CADDY_DOCKER_IMAGE_TAG)
 
 dep:
 	@echo "Making dependencies check ..."
