@@ -1,0 +1,58 @@
+{
+  https_port   8443
+  debug
+}
+
+localhost:8443 {
+
+  @baseUrlParam {
+    query baseUrl=*
+  }
+
+  route @baseUrlParam {
+
+    # Ensure we have a valid JWT
+    jwt_valid {
+      secret "AllYourBase"
+      has_claim foo bar
+    }
+
+    vars_regex {
+      name baseurl
+      source {http.request.uri.query.baseUrl}
+  	  pattern "(?P<scheme>https?:\/\/)(?P<host>[^:^\/]*)(?P<colon>:)?(?P<port>\d*[^\/])?(?P<path>.*[^\/])?"
+    }
+
+    # Because we use placeholders as arguments to reverse_proxy you have to specify host:port
+    # (i.e. it will not assume 443 for https via placeholders)
+    # So I have to force any missing port in the baseUrl to be 443 using a vars_regex trick:
+    vars_regex {
+        name default_port
+        source {http.vars_regex.baseurl.port}
+        pattern ".*"
+    }
+    vars_regex {
+        name default_port
+        source "443"
+        pattern ".*"
+        overwrite false
+    }
+
+    # Rewrites as baseUrl path + original url path
+    rewrite {http.vars_regex.baseurl.path}{http.request.uri.path}
+
+    # Proxy the request
+    reverse_proxy {http.vars_regex.baseurl.host}:{http.vars_regex.default_port.match1} {
+        transport http {
+          tls
+        }
+        header_up Host {http.reverse_proxy.upstream.hostport}
+    }
+  }
+
+  log {
+      level debug
+      output file ./bin/access.log
+      format single_field common_log
+    }
+}
