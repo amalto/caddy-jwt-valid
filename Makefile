@@ -1,6 +1,5 @@
 PLUGIN_NAME="caddy-jwt-valid"
 PLUGIN_VERSION:=$(shell cat VERSION | head -1)
-CADDY_DOCKER_IMAGE_TAG:=dev
 GIT_COMMIT:=$(shell git describe --dirty --always)
 GIT_BRANCH:=$(shell git rev-parse --abbrev-ref HEAD -- | head -1)
 LATEST_GIT_COMMIT:=$(shell git log --format="%H" -n 1 | head -1)
@@ -8,7 +7,8 @@ BUILD_USER:=$(shell whoami)
 BUILD_DATE:=$(shell date +"%Y-%m-%d")
 BUILD_DIR:=$(shell pwd)
 VERBOSE:=-v
-GO_OS:=$(shell echo $(uname) | tr '[:upper:]' '[:lower:]')
+#GO_OS:=$(shell echo $(uname) | tr '[:upper:]' '[:lower:]')
+GO_OS=linux
 ifdef TEST
 	TEST:="-run ${TEST}"
 endif
@@ -21,8 +21,7 @@ all:
 	@rm -rf ./bin/
 	@mkdir -p ./bin/xcaddy && cd ./bin/xcaddy && \
 	env GOARCH=amd64 GOOS=$(GO_OS) xcaddy build $(CADDY_VERSION) --output ../caddy \
-		    --with github.com/amalto/$(PLUGIN_NAME)@$(LATEST_GIT_COMMIT)=$(BUILD_DIR) \
-		    --with github.com/amalto/caddy-vars-regex@latest=$(BUILD_DIR)/../caddy-vars-regex
+		    --with github.com/amalto/$(PLUGIN_NAME)@$(LATEST_GIT_COMMIT)=$(BUILD_DIR)
 	@rm -rf ./bin/xcaddy
 
 linter:
@@ -57,11 +56,6 @@ clean:
 qtest: covdir
 	@echo "Perform quick tests ..."
 	@go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestCaddyfile ./*.go
-
-docker:
-	@docker image prune -f
-	@docker build --no-cache -t amalto/caddy:$(CADDY_DOCKER_IMAGE_TAG) -f ./resources/Dockerfile .
-	@docker push amalto/caddy:$(CADDY_DOCKER_IMAGE_TAG)
 
 dep:
 	@echo "Making dependencies check ..."
