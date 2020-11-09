@@ -1,4 +1,4 @@
-module github.com/amalto/caddy-vars-regex
+module github.com/amalto/caddy-jwt-valid
 
 go 1.15
 
