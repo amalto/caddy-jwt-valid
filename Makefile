@@ -1,5 +1,3 @@
-PLUGIN_NAME="caddy-jwt-valid"
-PLUGIN_VERSION:=$(shell cat VERSION | head -1)
 GIT_COMMIT:=$(shell git describe --dirty --always)
 GIT_BRANCH:=$(shell git rev-parse --abbrev-ref HEAD -- | head -1)
 LATEST_GIT_COMMIT:=$(shell git log --format="%H" -n 1 | head -1)
@@ -7,12 +5,9 @@ BUILD_USER:=$(shell whoami)
 BUILD_DATE:=$(shell date +"%Y-%m-%d")
 BUILD_DIR:=$(shell pwd)
 VERBOSE:=-v
-#GO_OS:=$(shell echo $(uname) | tr '[:upper:]' '[:lower:]')
-GO_OS=linux
-ifdef TEST
-	TEST:="-run ${TEST}"
-endif
-CADDY_VERSION="v2.2.1"
+
+include envfile
+export $(shell sed 's/=.*//' envfile)
 
 all:
 	@echo "Version: $(PLUGIN_VERSION), Branch: $(GIT_BRANCH), Revision: $(GIT_COMMIT)"
@@ -20,7 +15,7 @@ all:
 	@mkdir -p bin/
 	@rm -rf ./bin/
 	@mkdir -p ./bin/xcaddy && cd ./bin/xcaddy && \
-	env GOARCH=amd64 GOOS=$(GO_OS) xcaddy build $(CADDY_VERSION) --output ../caddy \
+	env GOARCH=amd64 GOOS=$(GO_OS) xcaddy build v$(CADDY_VERSION) --output ../caddy \
 		    --with github.com/amalto/$(PLUGIN_NAME)@$(LATEST_GIT_COMMIT)=$(BUILD_DIR)
 	@rm -rf ./bin/xcaddy
 
@@ -33,7 +28,7 @@ test: covdir linter
 	@go test $(VERBOSE) -coverprofile=.coverage/coverage.out ./*.go
 
 ctest: covdir linter
-	@time richgo test $(VERBOSE) $(TEST) -coverprofile=.coverage/coverage.out ./*.go
+	@time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out ./*.go
 
 covdir:
 	@echo "Creating .coverage/ directory"
