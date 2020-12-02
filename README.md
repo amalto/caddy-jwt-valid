@@ -35,6 +35,12 @@ Expressed as _[name] [value]_ pairs
 
 This field can repeat
 
+**clockskew**
+
+Optional time offset to be used to extend the token expiry validation range
+
+Expressed as a string suitable for https://golang.org/pkg/time/#ParseDuration
+
 ## Example
 ____
 
@@ -43,6 +49,7 @@ jwt_valid {
   secret "MyBigSecret"
   has_claim foo bar
   has_claim hello world
+  clockskew "10m"
 }
 ```
 

@@ -10,6 +10,7 @@ localhost:8443 {
     # Ensure we have a valid JWT
     jwt_valid {
       secret "AllYourBase"
+      clockskew "2m"
       has_claim foo bar
     }
 

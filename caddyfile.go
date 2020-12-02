@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
+	"time"
 )
 
 func init() {
@@ -12,6 +13,7 @@ func init() {
 
 func parseCaddyFileJwtValid(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
 	var valid JwtValid
+	valid.ClockSkewSeconds = 0
 	valid.Claims = make(map[string]string)
 	for h.Next() {
 		for nesting := h.Nesting(); h.NextBlock(nesting); {
@@ -31,6 +33,19 @@ func parseCaddyFileJwtValid(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler
 					return nil, err
 				}
 				valid.Secret = args[0]
+			case "clockskew":
+				args := h.RemainingArgs()
+				err := singleArgumentCheck(rootDirective, args)
+				if err != nil {
+					return nil, err
+				}
+				valid.ClockSkewSeconds, err = time.ParseDuration(args[0])
+				if err != nil {
+					return nil, err
+				}
+				if valid.ClockSkewSeconds < 0 {
+					return nil, fmt.Errorf("invalid clockskew value less than zero")
+				}
 			case "has_claim":
 				args := h.RemainingArgs()
 				if len(args) == 0 {

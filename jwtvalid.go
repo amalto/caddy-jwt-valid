@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func init() {
@@ -14,9 +15,10 @@ func init() {
 }
 
 type JwtValid struct {
-	KeyPath string            `json:"pemkeypath,omitempty"`
-	Secret  string            `json:"secret,omitempty"`
-	Claims  map[string]string `json:"hasclaims,omitempty"`
+	KeyPath          string            `json:"pemkeypath,omitempty"`
+	Secret           string            `json:"secret,omitempty"`
+	Claims           map[string]string `json:"hasclaims,omitempty"`
+	ClockSkewSeconds time.Duration     `json:"clockskew,omitempty"`
 
 	logger    *zap.Logger
 	validator *Validator
@@ -31,7 +33,7 @@ func (JwtValid) CaddyModule() caddy.ModuleInfo {
 
 func (jtv *JwtValid) Provision(ctx caddy.Context) error {
 	jtv.logger = ctx.Logger(jtv)
-	jtv.validator = NewValidator(jtv.KeyPath, jtv.Secret, &jtv.Claims, jtv.logger)
+	jtv.validator = NewValidator(jtv.KeyPath, jtv.Secret, jtv.ClockSkewSeconds, &jtv.Claims, jtv.logger)
 	return nil
 }
 

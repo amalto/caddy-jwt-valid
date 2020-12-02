@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/caddyserver/caddy/v2 v2.2.1
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
 	github.com/spf13/cast v1.3.1
 	go.uber.org/zap v1.16.0
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect

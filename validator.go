@@ -3,10 +3,11 @@ package jwtvalid
 import (
 	"crypto/rsa"
 	"fmt"
-	jwtlib "github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go/v4"
 	"github.com/spf13/cast"
 	"go.uber.org/zap"
 	"io/ioutil"
+	"time"
 )
 
 type Validator struct {
@@ -14,15 +15,18 @@ type Validator struct {
 	publicPEM []byte
 	publicKey *rsa.PublicKey
 	secret    string
+	clockSkew time.Duration
 	hasClaims *map[string]string
+	parser    *jwt.Parser
 }
 
-func NewValidator(pemFilePath string, secret string, hasClaims *map[string]string, logger *zap.Logger) *Validator {
+func NewValidator(pemFilePath string, secret string, clockSkew time.Duration, hasClaims *map[string]string, logger *zap.Logger) *Validator {
 	var err error
 	v := new(Validator)
 	v.logger = logger
 	v.hasClaims = hasClaims
 	v.secret = secret
+	v.clockSkew = clockSkew
 	if len(pemFilePath) > 0 {
 		v.publicPEM, err = ioutil.ReadFile(pemFilePath)
 		if err != nil {
@@ -30,18 +34,25 @@ func NewValidator(pemFilePath string, secret string, hasClaims *map[string]strin
 			panic(err.Error())
 		}
 	}
-	logger.Info("JWT Validator initialised.")
+	if v.clockSkew > 0 {
+		v.parser = jwt.NewParser(jwt.WithLeeway(v.clockSkew))
+		logger.Info("JWT Validator initialised with allowed clock skew ", zap.Duration("seconds", v.clockSkew))
+	} else {
+		v.parser = jwt.NewParser()
+		logger.Info("JWT Validator initialised.")
+	}
+
 	return v
 }
 
 func (v Validator) Valid(token string) (bool, error) {
-	jwtToken, err := jwtlib.Parse(token, v.provideKey)
+	jwtToken, err := v.parser.Parse(token, v.provideKey)
 	if err != nil {
 		v.logger.Debug("token validation failed", zap.Error(err))
 		return false, err
 	}
 	// Validate custom claims
-	if claims, ok := jwtToken.Claims.(jwtlib.MapClaims); ok && jwtToken.Valid {
+	if claims, ok := jwtToken.Claims.(jwt.MapClaims); ok && jwtToken.Valid {
 		for key, value := range *v.hasClaims {
 			claimValue := cast.ToString(claims[key])
 			if claimValue != value {
@@ -54,11 +65,11 @@ func (v Validator) Valid(token string) (bool, error) {
 	return true, nil
 }
 
-func (v Validator) provideKey(_ *jwtlib.Token) (interface{}, error) {
+func (v Validator) provideKey(_ *jwt.Token) (interface{}, error) {
 	var err error
 	if len(v.publicPEM) > 0 {
 		if v.publicKey == nil {
-			v.publicKey, err = jwtlib.ParseRSAPublicKeyFromPEM(v.publicPEM)
+			v.publicKey, err = jwt.ParseRSAPublicKeyFromPEM(v.publicPEM)
 		}
 		return v.publicKey, err
 	} else if len(v.secret) > 0 {
