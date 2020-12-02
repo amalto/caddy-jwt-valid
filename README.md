@@ -5,6 +5,7 @@
     "pem_keypath": "",
     "secret": "",
     "has_claim": "" "",
+    "clockskew": ""
 }
 ```
 ## Description
