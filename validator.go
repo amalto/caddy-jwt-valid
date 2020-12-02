@@ -35,7 +35,7 @@ func NewValidator(pemFilePath string, secret string, clockSkew time.Duration, ha
 		}
 	}
 	if v.clockSkew > 0 {
-		v.parser = jwt.NewParser(jwt.WithLeeway(v.clockSkew))
+		v.parser = jwt.NewParser(jwt.WithLeeway(v.clockSkew), jwt.WithoutAudienceValidation())
 		logger.Info("JWT Validator initialised with allowed clock skew ", zap.Duration("seconds", v.clockSkew))
 	} else {
 		v.parser = jwt.NewParser()
