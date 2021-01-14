@@ -5,7 +5,8 @@
     "pem_keypath": "",
     "secret": "",
     "has_claim": "" "",
-    "clockskew": ""
+    "clockskew": "",
+    "fail_header": "" ""
 }
 ```
 ## Description
@@ -42,6 +43,12 @@ Optional time offset to be used to extend the token expiry validation range
 
 Expressed as a string suitable for https://golang.org/pkg/time/#ParseDuration
 
+**fail_header**
+
+Optional additional HTTP headers to add to any failed response
+
+Expressed as _[name] [value]_ pairs
+
 ## Example
 ____
 
@@ -51,6 +58,7 @@ jwt_valid {
   has_claim foo bar
   has_claim hello world
   clockskew "10m"
+  fail_header hello world
 }
 ```
 

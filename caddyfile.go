@@ -15,6 +15,7 @@ func parseCaddyFileJwtValid(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler
 	var valid JwtValid
 	valid.ClockSkewSeconds = 0
 	valid.Claims = make(map[string]string)
+	valid.Headers = make(map[string]string)
 	for h.Next() {
 		for nesting := h.Nesting(); h.NextBlock(nesting); {
 			rootDirective := h.Val()
@@ -55,6 +56,15 @@ func parseCaddyFileJwtValid(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler
 					return nil, fmt.Errorf("%s argument value of %s is unsupported", rootDirective, args[0])
 				}
 				valid.Claims[args[0]] = args[1]
+			case "fail_header":
+				args := h.RemainingArgs()
+				if len(args) == 0 {
+					return nil, fmt.Errorf("%s argument has no value", rootDirective)
+				}
+				if len(args) != 2 {
+					return nil, fmt.Errorf("%s argument value of %s is unsupported", rootDirective, args[0])
+				}
+				valid.Headers[args[0]] = args[1]
 			}
 		}
 	}

@@ -18,6 +18,7 @@ type JwtValid struct {
 	KeyPath          string            `json:"pemkeypath,omitempty"`
 	Secret           string            `json:"secret,omitempty"`
 	Claims           map[string]string `json:"hasclaims,omitempty"`
+	Headers          map[string]string `json:"failheaders,omitempty"`
 	ClockSkewSeconds time.Duration     `json:"clockskew,omitempty"`
 
 	logger    *zap.Logger
@@ -38,29 +39,39 @@ func (jtv *JwtValid) Provision(ctx caddy.Context) error {
 }
 
 func (jtv JwtValid) ServeHTTP(resp http.ResponseWriter, req *http.Request, next caddyhttp.Handler) error {
-	var err error
+
 	if req.Method != "OPTIONS" {
 		token := req.URL.Query().Get("access_token")
 		if len(token) == 0 {
 			token = extractTokenFromHeader(req)
 		}
 		if len(token) == 0 {
-			err = fmt.Errorf("jwt not found")
-			jtv.logger.Warn("no jwt", zap.Error(err))
-			return caddyhttp.Error(http.StatusUnauthorized, err)
-		}
-		validJwt, err := jtv.validator.Valid(token)
-		if !validJwt || err != nil {
-			if err != nil {
-				err = fmt.Errorf("invalid request jwt %v", err)
-			} else {
-				err = fmt.Errorf("invalid request jwt")
+			jtv.writeUnauthorizedResponse(resp, fmt.Errorf("bearer authentication token not found"))
+		} else {
+			validJwt, err := jtv.validator.Valid(token)
+			if !validJwt || err != nil {
+				if err != nil {
+					err = fmt.Errorf("failed token verification %v", err)
+				} else {
+					err = fmt.Errorf("failed token verification")
+				}
+				jtv.writeUnauthorizedResponse(resp, err)
 			}
-			jtv.logger.Warn("invalid jwt", zap.Error(err))
-			return caddyhttp.Error(http.StatusUnauthorized, err)
 		}
 	}
 	return next.ServeHTTP(resp, req)
+}
+
+func (jtv JwtValid) writeUnauthorizedResponse(resp http.ResponseWriter, err error) {
+	jtv.logger.Warn("jwt issue", zap.Error(err))
+	for key, value := range jtv.Headers {
+		resp.Header().Add(key, value)
+	}
+	resp.WriteHeader(http.StatusUnauthorized)
+	_, wErr := resp.Write([]byte(err.Error()))
+	if nil != wErr {
+		jtv.logger.Fatal("response write failure", zap.Error(wErr))
+	}
 }
 
 func extractTokenFromHeader(r *http.Request) string {

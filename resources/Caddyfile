@@ -12,6 +12,8 @@ localhost:8443 {
       secret "AllYourBase"
       clockskew "2m"
       has_claim foo bar
+      fail_header Access-Control-Allow-Origin *
+      fail_header Foo Bar
     }
 
     respond / 200
