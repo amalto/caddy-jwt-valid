@@ -21,8 +21,9 @@ type JwtValid struct {
 	Headers          map[string]string `json:"failheaders,omitempty"`
 	ClockSkewSeconds time.Duration     `json:"clockskew,omitempty"`
 
-	logger    *zap.Logger
-	validator *Validator
+	logger       *zap.Logger
+	validator    *Validator
+	emptyHandler caddyhttp.Handler
 }
 
 func (JwtValid) CaddyModule() caddy.ModuleInfo {
@@ -35,6 +36,7 @@ func (JwtValid) CaddyModule() caddy.ModuleInfo {
 func (jtv *JwtValid) Provision(ctx caddy.Context) error {
 	jtv.logger = ctx.Logger(jtv)
 	jtv.validator = NewValidator(jtv.KeyPath, jtv.Secret, jtv.ClockSkewSeconds, &jtv.Claims, jtv.logger)
+	jtv.emptyHandler = caddyhttp.HandlerFunc(func(http.ResponseWriter, *http.Request) error { return nil })
 	return nil
 }
 
@@ -47,6 +49,7 @@ func (jtv JwtValid) ServeHTTP(resp http.ResponseWriter, req *http.Request, next 
 		}
 		if len(token) == 0 {
 			jtv.writeUnauthorizedResponse(resp, fmt.Errorf("bearer authentication token not found"))
+			next = jtv.emptyHandler
 		} else {
 			validJwt, err := jtv.validator.Valid(token)
 			if !validJwt || err != nil {
@@ -56,6 +59,7 @@ func (jtv JwtValid) ServeHTTP(resp http.ResponseWriter, req *http.Request, next 
 					err = fmt.Errorf("failed token verification")
 				}
 				jtv.writeUnauthorizedResponse(resp, err)
+				next = jtv.emptyHandler
 			}
 		}
 	}
