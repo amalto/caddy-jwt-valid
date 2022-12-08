@@ -5,6 +5,7 @@
     "pem_keypath": "",
     "secret": "",
     "has_claim": "" "",
+    "startswith_claim": "" "",
     "clockskew": "",
     "fail_header": "" ""
 }
@@ -37,6 +38,14 @@ Expressed as _[name] [value]_ pairs
 
 This field can repeat
 
+**startswith_claim**
+
+Optional additional validation to ensure given claims starts with the given values
+
+Expressed as _[name] [value]_ pairs
+
+This field can repeat
+
 **clockskew**
 
 Optional time offset to be used to extend the token expiry validation range
@@ -56,6 +65,7 @@ ____
 jwt_valid {
   secret "MyBigSecret"
   has_claim foo bar
+  startswith_claim foo ba
   has_claim hello world
   clockskew "10m"
   fail_header hello world
@@ -69,6 +79,6 @@ The Makefile is used for all build operations.  The file `envfile` is used for l
 Please refer to https://caddyserver.com/docs/extending-caddy for details of configuring your environment and the use of `xcaddy`.
 __________
 
-The current version of Caddy Server specified in the envfile is **2.3.0** 
+The current version of Caddy Server specified in the envfile is **2.6.2** 
 
 __________

@@ -18,6 +18,7 @@ type JwtValid struct {
 	KeyPath          string            `json:"pemkeypath,omitempty"`
 	Secret           string            `json:"secret,omitempty"`
 	Claims           map[string]string `json:"hasclaims,omitempty"`
+	StartsWithClaims map[string]string `json:"startswithclaims,omitempty"`
 	Headers          map[string]string `json:"failheaders,omitempty"`
 	ClockSkewSeconds time.Duration     `json:"clockskew,omitempty"`
 
@@ -33,9 +34,9 @@ func (JwtValid) CaddyModule() caddy.ModuleInfo {
 	}
 }
 
-func (jtv *JwtValid) Provision(ctx caddy.Context) error {
+func (jtv JwtValid) Provision(ctx caddy.Context) error {
 	jtv.logger = ctx.Logger(jtv)
-	jtv.validator = NewValidator(jtv.KeyPath, jtv.Secret, jtv.ClockSkewSeconds, &jtv.Claims, jtv.logger)
+	jtv.validator = NewValidator(jtv.KeyPath, jtv.Secret, jtv.ClockSkewSeconds, &jtv.Claims, &jtv.StartsWithClaims, jtv.logger)
 	jtv.emptyHandler = caddyhttp.HandlerFunc(func(http.ResponseWriter, *http.Request) error { return nil })
 	return nil
 }

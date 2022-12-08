@@ -7,24 +7,27 @@ import (
 	"github.com/spf13/cast"
 	"go.uber.org/zap"
 	"io/ioutil"
+	"strings"
 	"time"
 )
 
 type Validator struct {
-	logger    *zap.Logger
-	publicPEM []byte
-	publicKey *rsa.PublicKey
-	secret    string
-	clockSkew time.Duration
-	hasClaims *map[string]string
-	parser    *jwt.Parser
+	logger           *zap.Logger
+	publicPEM        []byte
+	publicKey        *rsa.PublicKey
+	secret           string
+	clockSkew        time.Duration
+	hasClaims        *map[string]string
+	startsWithClaims *map[string]string
+	parser           *jwt.Parser
 }
 
-func NewValidator(pemFilePath string, secret string, clockSkew time.Duration, hasClaims *map[string]string, logger *zap.Logger) *Validator {
+func NewValidator(pemFilePath string, secret string, clockSkew time.Duration, hasClaims *map[string]string, startsWithClaims *map[string]string, logger *zap.Logger) *Validator {
 	var err error
 	v := new(Validator)
 	v.logger = logger
 	v.hasClaims = hasClaims
+	v.startsWithClaims = startsWithClaims
 	v.secret = secret
 	v.clockSkew = clockSkew
 	if len(pemFilePath) > 0 {
@@ -57,6 +60,12 @@ func (v Validator) Valid(token string) (bool, error) {
 			claimValue := cast.ToString(claims[key])
 			if claimValue != value {
 				return false, fmt.Errorf("invalid jwt claim encountered: %s, expected: %s, found: %s", key, value, claimValue)
+			}
+		}
+		for key, value := range *v.startsWithClaims {
+			claimValue := cast.ToString(claims[key])
+			if !strings.HasPrefix(claimValue, value) {
+				return false, fmt.Errorf("invalid jwt claim encountered: %s, must start with: %s, found: %s", key, value, claimValue)
 			}
 		}
 	}
