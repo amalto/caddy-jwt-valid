@@ -34,7 +34,7 @@ func (JwtValid) CaddyModule() caddy.ModuleInfo {
 	}
 }
 
-func (jtv JwtValid) Provision(ctx caddy.Context) error {
+func (jtv *JwtValid) Provision(ctx caddy.Context) error {
 	jtv.logger = ctx.Logger(jtv)
 	jtv.validator = NewValidator(jtv.KeyPath, jtv.Secret, jtv.ClockSkewSeconds, &jtv.Claims, &jtv.StartsWithClaims, jtv.logger)
 	jtv.emptyHandler = caddyhttp.HandlerFunc(func(http.ResponseWriter, *http.Request) error { return nil })
