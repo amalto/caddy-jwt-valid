@@ -22,9 +22,8 @@ type JwtValid struct {
 	Headers          map[string]string `json:"failheaders,omitempty"`
 	ClockSkewSeconds time.Duration     `json:"clockskew,omitempty"`
 
-	logger       *zap.Logger
-	validator    *Validator
-	emptyHandler caddyhttp.Handler
+	logger    *zap.Logger
+	validator *Validator
 }
 
 func (JwtValid) CaddyModule() caddy.ModuleInfo {
@@ -37,7 +36,6 @@ func (JwtValid) CaddyModule() caddy.ModuleInfo {
 func (jtv *JwtValid) Provision(ctx caddy.Context) error {
 	jtv.logger = ctx.Logger(jtv)
 	jtv.validator = NewValidator(jtv.KeyPath, jtv.Secret, jtv.ClockSkewSeconds, &jtv.Claims, &jtv.StartsWithClaims, jtv.logger)
-	jtv.emptyHandler = caddyhttp.HandlerFunc(func(http.ResponseWriter, *http.Request) error { return nil })
 	return nil
 }
 
@@ -49,8 +47,7 @@ func (jtv JwtValid) ServeHTTP(resp http.ResponseWriter, req *http.Request, next 
 			token = extractTokenFromHeader(req)
 		}
 		if len(token) == 0 {
-			jtv.writeUnauthorizedResponse(resp, fmt.Errorf("bearer authentication token not found"))
-			next = jtv.emptyHandler
+			return caddyhttp.Error(http.StatusUnauthorized, fmt.Errorf("bearer authentication token not found"))
 		} else {
 			validJwt, err := jtv.validator.Valid(token)
 			if !validJwt || err != nil {
@@ -59,24 +56,11 @@ func (jtv JwtValid) ServeHTTP(resp http.ResponseWriter, req *http.Request, next 
 				} else {
 					err = fmt.Errorf("failed token verification")
 				}
-				jtv.writeUnauthorizedResponse(resp, err)
-				next = jtv.emptyHandler
+				return caddyhttp.Error(http.StatusUnauthorized, err)
 			}
 		}
 	}
 	return next.ServeHTTP(resp, req)
-}
-
-func (jtv JwtValid) writeUnauthorizedResponse(resp http.ResponseWriter, err error) {
-	jtv.logger.Warn("jwt issue", zap.Error(err))
-	for key, value := range jtv.Headers {
-		resp.Header().Add(key, value)
-	}
-	resp.WriteHeader(http.StatusUnauthorized)
-	_, wErr := resp.Write([]byte(err.Error()))
-	if nil != wErr {
-		jtv.logger.Fatal("response write failure", zap.Error(wErr))
-	}
 }
 
 func extractTokenFromHeader(r *http.Request) string {

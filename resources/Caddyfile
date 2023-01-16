@@ -5,6 +5,10 @@
 
 localhost:8443 {
 
+  handle_errors {
+	respond "[JWT Module Default Custom Error] '{err.message}': {err.status_code} {err.status_text}"
+  }
+
   route {
 
     # Ensure we have a valid JWT
